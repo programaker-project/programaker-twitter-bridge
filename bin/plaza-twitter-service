@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+
+import logging
+import sys
+import json
+from plaza_service import (
+    PlazaService,
+    ServiceConfiguration,
+    ServiceBlock,
+    BlockArgument,
+    BlockContext,
+    DynamicBlockArgument,
+    VariableBlockArgument,
+    BlockType,
+    VariableClass,
+    MessageBasedServiceRegistration,
+)
+import tweepy
+
+from plaza_twitter_service import config
+from plaza_twitter_service.storage import sqlite_storage
+
+
+class Registerer(MessageBasedServiceRegistration):
+    def __init__(self, *args, **kwargs):
+        MessageBasedServiceRegistration.__init__(self, *args, **kwargs)
+
+    def get_call_to_action_text(self, extra_data):
+        return """You're ready to read twitter """
+
+class TwitterService(PlazaService):
+    def __init__(self, twitter_token, twitter_token_secret, storage, *args, **kwargs):
+        PlazaService.__init__(self, *args, **kwargs)
+        self._api_auth = tweepy.auth.AppAuthHandler(twitter_token, twitter_token_secret)
+        self.api = tweepy.API(self._api_auth)
+
+        self.storage = storage
+        self.registerer = Registerer(self)
+        self.SUPPORTED_FUNCTIONS = {
+            "get_last_tweet": self.get_last_tweet,
+        }
+        self.SUPPORTED_CALLBACKS = {}
+
+    async def get_last_tweet(self, account_name, extra_data):
+        timeline = self.api.user_timeline(account_name, count=1)
+        if len(timeline) == 0:
+            raise Exception("Empty timeline")
+        return timeline[0]._json
+
+    async def handle_call(self, function_name, arguments, extra_data):
+        logging.info(
+            "{}({}) # {}".format(
+                function_name, ", ".join(arguments), extra_data.user_id
+            )
+        )
+        return await self.SUPPORTED_FUNCTIONS[function_name](*arguments, extra_data)
+
+    async def handle_data_callback(self, callback_name, extra_data):
+        logging.info("GET {} # {}".format(callback_name, extra_data.user_id))
+        return await self.SUPPORTED_CALLBACKS[callback_name](callback_name, extra_data)
+
+    def handle_configuration(self):
+        return ServiceConfiguration(
+            service_name="Twitter (read-oly)",
+            is_public=False,
+            registration=self.registerer,
+            blocks=[
+                ServiceBlock(
+                    id="get_last_tweet",
+                    function_name="get_last_tweet",
+                    message="Get last tweet from %1 to %2",
+                    arguments=[
+                        BlockArgument(str, "aplazaproject"),
+                        VariableBlockArgument(VariableClass.SINGLE),
+                    ],
+                    save_to=BlockContext.ARGUMENTS[1],
+                    block_type=BlockType.OPERATION,
+                    block_result_type=None,  # TODO: change
+                ),
+            ],
+        )
+
+if __name__ == "__main__":
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+
+    bridge_endpoint = config.get_bridge_endpoint()
+
+    service = TwitterService(config.get_twitter_token(),
+                             config.get_twitter_token_secret(),
+                             sqlite_storage.get_default(), bridge_endpoint)
+    service.run()
+
