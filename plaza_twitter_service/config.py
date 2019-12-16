@@ -73,4 +73,3 @@ def get_twitter_token_secret():
             raise Exception('No consumer API token *secret* introduced')
         _save_config(config)
     return config[TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX]
-

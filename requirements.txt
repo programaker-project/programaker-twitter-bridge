@@ -2,4 +2,4 @@
 tweepy
 
 # Plaza
-git+https://gitlab.com/plaza-project/bridges/python-plaza-lib
+plaza-bridge
