@@ -61,17 +61,17 @@ def get_last_tweet(account_name, extra_data):
         BlockArgument(str, '<< Add here a "get-tweet" block >>'),
     ]
 )
-def get_last_tweet(tweet_data, extra_data):
+def get_tweet_message(tweet_data, extra_data):
     return tweet_data['text']
 
 
-
 if __name__ == "__main__":
-    logging.basicConfig(format="%(asctime)s - %(levelname)s [%(filename)s] %(message)s")
+    logging.basicConfig(
+        format="%(asctime)s - %(levelname)s [%(filename)s] %(message)s")
     logging.getLogger().setLevel(logging.DEBUG)
     try:
         bridge.run()
-    except:
+    except Exception:
         traceback.print_exc()
         os._exit(1)
 
