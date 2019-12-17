@@ -9,9 +9,11 @@ from plaza_bridge import (
     BlockArgument,  # Needed for argument definition
     MessageBasedServiceRegistration,
     VariableBlockArgument,
+    BlockContext,
 )
 import tweepy
 
+from plaza_twitter_service import TweetListener
 from plaza_twitter_service import config
 from plaza_twitter_service.storage import sqlite_storage
 
@@ -23,6 +25,8 @@ STORAGE = sqlite_storage.get_default()
 _api_auth = tweepy.auth.AppAuthHandler(twitter_token, twitter_token_secret)
 TWITTER_API = tweepy.API(_api_auth)
 
+LISTENER = TweetListener(TWITTER_API)
+
 
 class Registerer(MessageBasedServiceRegistration):
     def __init__(self, *args, **kwargs):
@@ -33,10 +37,24 @@ class Registerer(MessageBasedServiceRegistration):
 
 
 bridge = PlazaBridge(
-    name="Random number bridge",
+    name="Twitter",
     endpoint=config.get_bridge_endpoint(),
+    events=['on_new_tweet'],
     registerer=Registerer(),
 )
+on_new_tweet_event = bridge.events.on_new_tweet
+on_new_tweet_event.add_trigger_block(
+    id="on_new_tweet_by_account",
+    message="When %1 tweets",
+    arguments=[BlockArgument(str, "obichero")],
+    save_to=BlockContext.ARGUMENTS[0],
+)
+
+
+@on_new_tweet_event.on_new_listeners
+def on_new_listeners(listener_count):
+    # Signal key: [ users listening ]
+    print(listener_count)
 
 
 @bridge.getter(
@@ -50,7 +68,6 @@ def get_last_tweet(account_name, extra_data):
     timeline = TWITTER_API.user_timeline(account_name, count=1)
     if len(timeline) == 0:
         raise Exception("Empty timeline")
-    print(timeline[0]._json)
     return timeline[0]._json
 
 
@@ -69,6 +86,8 @@ if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s [%(filename)s] %(message)s")
     logging.getLogger().setLevel(logging.DEBUG)
+
+    LISTENER.start()
     try:
         bridge.run()
     except Exception:
