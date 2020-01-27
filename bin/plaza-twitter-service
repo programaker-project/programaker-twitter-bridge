@@ -88,6 +88,19 @@ def get_last_tweet(account_name, extra_data):
 def get_tweet_message(tweet_data, extra_data=None):
     return tweet_data['text']
 
+@bridge.operation(
+    id="get_hashtags",  # Give it an ID
+    message="Save hashtags from tweet in %1 to %2",  # Set block message
+    arguments=[
+        BlockArgument(str, '<< Add here a "get-tweet" block >>'),
+        VariableBlockArgument(list),
+    ],
+    save_to=BlockContext.ARGUMENTS[1],
+)
+def get_tweet_hashtags(tweet_data, extra_data=None):
+    hashtags = tweet_data.get('entities', {}).get('hashtags', [])
+    return [tag['text'] for tag in hashtags]
+
 
 if __name__ == "__main__":
     logging.basicConfig(
