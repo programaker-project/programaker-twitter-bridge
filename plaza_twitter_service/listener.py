@@ -15,7 +15,7 @@ TIMELINE_RATE_LIMIT_WINDOW_SECS = 15 * 60  # 15 Minutes
 RATE_LIMIT_MARGIN = 0.5
 
 MIN_UPDATE_PERIOD = 60  # Minimal time between updates on a single user account
-NUM_TWEETS_PER_CHECK = 10  # How many tweets are retrieved in a single check
+NUM_TWEETS_PER_CHECK = 3  # How many tweets are retrieved in a single check
 
 assert 0 < RATE_LIMIT_MARGIN < 1
 
@@ -77,20 +77,21 @@ class TweetListenerThread(threading.Thread):
 
 
 class TweetListener:
-    def __init__(self, api):
+    def __init__(self, api, storage):
         self.api = api
         self.thread = TweetListenerThread(self)
-        self.last_tweet_by_user = {}  # TODO: Persist last_tweet_by_user
+        self.storage = storage
 
     def add_to_user(self, user, subkey):
         self.thread.add_to_user(user, subkey)
 
     def check(self, user_id, channel):
         tweets = self.api.user_timeline(channel, count=NUM_TWEETS_PER_CHECK)
+        last_tweet_by_user = self.storage.get_last_tweet_by_user(user_id, channel) or 0
         for tweet in tweets[::-1]:
             tweet_id = tweet._json['id']
-            if tweet_id > self.last_tweet_by_user.get(channel, 0):
-                self.last_tweet_by_user[channel] = tweet_id
+            if tweet_id > last_tweet_by_user:
+                self.storage.set_last_tweet_by_user(user_id, channel, tweet_id)
                 self.on_update(user_id, tweet)
 
     def start(self):

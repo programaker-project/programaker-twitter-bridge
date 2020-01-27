@@ -25,7 +25,7 @@ STORAGE = sqlite_storage.get_default()
 _api_auth = tweepy.auth.AppAuthHandler(twitter_token, twitter_token_secret)
 TWITTER_API = tweepy.API(_api_auth)
 
-LISTENER = TweetListener(TWITTER_API)
+LISTENER = TweetListener(TWITTER_API, STORAGE)
 
 
 class Registerer(MessageBasedServiceRegistration):
