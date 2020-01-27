@@ -45,16 +45,23 @@ bridge = PlazaBridge(
 on_new_tweet_event = bridge.events.on_new_tweet
 on_new_tweet_event.add_trigger_block(
     id="on_new_tweet_by_account",
-    message="When %1 tweets",
-    arguments=[BlockArgument(str, "obichero")],
-    save_to=BlockContext.ARGUMENTS[0],
+    message="When %1 tweets. Save to %2",
+    arguments=[BlockArgument(str, "obichero"), VariableBlockArgument(str)],
+    subkey=BlockContext.ARGUMENTS[0],
+    save_to=BlockContext.ARGUMENTS[1],
 )
 
 
 @on_new_tweet_event.on_new_listeners
-def on_new_listeners(listener_count):
-    # Signal key: [ users listening ]
-    print(listener_count)
+def on_new_listeners(user, subkey):
+    LISTENER.add_to_user(user, subkey)
+
+
+LISTENER.on_message = lambda user_id, message: on_new_tweet_event.send(
+    to_user=user_id,
+    content=message._json,
+    event=message._json,
+)
 
 
 @bridge.getter(
@@ -62,7 +69,7 @@ def on_new_listeners(listener_count):
     message="Get last tweet from %1",  # Set block message
     arguments=[
         BlockArgument(str, "obichero"),
-    ]
+    ],
 )
 def get_last_tweet(account_name, extra_data):
     timeline = TWITTER_API.user_timeline(account_name, count=1)
@@ -78,7 +85,7 @@ def get_last_tweet(account_name, extra_data):
         BlockArgument(str, '<< Add here a "get-tweet" block >>'),
     ]
 )
-def get_tweet_message(tweet_data, extra_data):
+def get_tweet_message(tweet_data, extra_data=None):
     return tweet_data['text']
 
 
