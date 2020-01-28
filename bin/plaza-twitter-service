@@ -9,9 +9,11 @@ from plaza_bridge import (
     BlockArgument,  # Needed for argument definition
     MessageBasedServiceRegistration,
     VariableBlockArgument,
+    BlockContext,
 )
 import tweepy
 
+from plaza_twitter_service import TweetListener
 from plaza_twitter_service import config
 from plaza_twitter_service.storage import sqlite_storage
 
@@ -23,6 +25,8 @@ STORAGE = sqlite_storage.get_default()
 _api_auth = tweepy.auth.AppAuthHandler(twitter_token, twitter_token_secret)
 TWITTER_API = tweepy.API(_api_auth)
 
+LISTENER = TweetListener(TWITTER_API, STORAGE)
+
 
 class Registerer(MessageBasedServiceRegistration):
     def __init__(self, *args, **kwargs):
@@ -33,9 +37,30 @@ class Registerer(MessageBasedServiceRegistration):
 
 
 bridge = PlazaBridge(
-    name="Random number bridge",
+    name="Twitter",
     endpoint=config.get_bridge_endpoint(),
+    events=['on_new_tweet'],
     registerer=Registerer(),
+)
+on_new_tweet_event = bridge.events.on_new_tweet
+on_new_tweet_event.add_trigger_block(
+    id="on_new_tweet_by_account",
+    message="When %1 tweets. Save to %2",
+    arguments=[BlockArgument(str, "obichero"), VariableBlockArgument(str)],
+    subkey=BlockContext.ARGUMENTS[0],
+    save_to=BlockContext.ARGUMENTS[1],
+)
+
+
+@on_new_tweet_event.on_new_listeners
+def on_new_listeners(user, subkey):
+    LISTENER.add_to_user(user, subkey)
+
+
+LISTENER.on_message = lambda user_id, message: on_new_tweet_event.send(
+    to_user=user_id,
+    content=message._json,
+    event=message._json,
 )
 
 
@@ -44,13 +69,12 @@ bridge = PlazaBridge(
     message="Get last tweet from %1",  # Set block message
     arguments=[
         BlockArgument(str, "obichero"),
-    ]
+    ],
 )
 def get_last_tweet(account_name, extra_data):
     timeline = TWITTER_API.user_timeline(account_name, count=1)
     if len(timeline) == 0:
         raise Exception("Empty timeline")
-    print(timeline[0]._json)
     return timeline[0]._json
 
 
@@ -61,14 +85,29 @@ def get_last_tweet(account_name, extra_data):
         BlockArgument(str, '<< Add here a "get-tweet" block >>'),
     ]
 )
-def get_tweet_message(tweet_data, extra_data):
+def get_tweet_message(tweet_data, extra_data=None):
     return tweet_data['text']
+
+@bridge.operation(
+    id="get_hashtags",  # Give it an ID
+    message="Save hashtags from tweet in %1 to %2",  # Set block message
+    arguments=[
+        BlockArgument(str, '<< Add here a "get-tweet" block >>'),
+        VariableBlockArgument(list),
+    ],
+    save_to=BlockContext.ARGUMENTS[1],
+)
+def get_tweet_hashtags(tweet_data, extra_data=None):
+    hashtags = tweet_data.get('entities', {}).get('hashtags', [])
+    return [tag['text'] for tag in hashtags]
 
 
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s [%(filename)s] %(message)s")
     logging.getLogger().setLevel(logging.DEBUG)
+
+    LISTENER.start()
     try:
         bridge.run()
     except Exception:
