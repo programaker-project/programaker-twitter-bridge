@@ -3,3 +3,12 @@ tweepy
 
 # Plaza
 plaza-bridge
+
+# SQLAlchemy
+SQLAlchemy
+
+# Postgres support
+psycopg2-binary
+
+# XDG
+xdg

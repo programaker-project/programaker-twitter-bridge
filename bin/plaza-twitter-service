@@ -15,12 +15,12 @@ import tweepy
 
 from plaza_twitter_service import TweetListener
 from plaza_twitter_service import config
-from plaza_twitter_service.storage import sqlite_storage
+from plaza_twitter_service import storage
 
 
 twitter_token = config.get_twitter_token()
 twitter_token_secret = config.get_twitter_token_secret()
-STORAGE = sqlite_storage.get_default()
+STORAGE = storage.get_engine()
 
 _api_auth = tweepy.auth.AppAuthHandler(twitter_token, twitter_token_secret)
 TWITTER_API = tweepy.API(_api_auth)
@@ -57,11 +57,15 @@ def on_new_listeners(user, subkey):
     LISTENER.add_to_user(user, subkey)
 
 
-LISTENER.on_message = lambda user_id, message: on_new_tweet_event.send(
-    to_user=user_id,
-    content=message._json,
-    event=message._json,
-)
+def send_message_to_platform(user_id, message):
+    logging.info("sending message: {}".format(get_tweet_message(message._json)))
+    on_new_tweet_event.send(
+        to_user=user_id,
+        content=message._json,
+        event=message._json,
+    )
+
+LISTENER.on_message = send_message_to_platform
 
 
 @bridge.getter(
@@ -105,7 +109,7 @@ def get_tweet_hashtags(tweet_data, extra_data=None):
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s [%(filename)s] %(message)s")
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.INFO)
 
     LISTENER.start()
     try:
