@@ -38,6 +38,7 @@ class StorageEngine:
         with self._connect_db() as conn:
             access_token, access_token_secret = token_info
 
+            # Create tweeter user
             check = conn.execute(
                 sqlalchemy.select([models.TwitterUserRegistration.c.id])
                 .where(models.TwitterUserRegistration.c.twitter_token == access_token)
@@ -51,8 +52,19 @@ class StorageEngine:
             else:
                 twitter_user_id = check.id
 
+            # Create programaker user
             check = conn.execute(
-            sqlalchemy.select([models.PlazaUsersInTwitter.c.twitter_id])
+                sqlalchemy.select([models.PlazaUsers.c.id])
+                .where(models.PlazaUsers.c.id == connection_id)
+            ).fetchone()
+
+            if check is None:
+                insert = models.PlazaUsers.insert().values(id=connection_id)
+                conn.execute(insert)
+
+            # Bind the two users
+            check = conn.execute(
+                sqlalchemy.select([models.PlazaUsersInTwitter.c.twitter_id])
                 .where(models.PlazaUsersInTwitter.c.twitter_id == twitter_user_id)
             ).fetchone()
 
