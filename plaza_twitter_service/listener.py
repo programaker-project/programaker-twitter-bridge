@@ -21,8 +21,8 @@ class TweetListenerThread(threading.Thread):
     def add_to_user(self, user, subkey):
         logging.debug("New listener: {} {}".format(user, subkey))
         if user not in self.by_user:
-            self.by_user[user] = {}
-        self.by_user[user][subkey] = None
+            self.by_user[user] = []
+        self.by_user[user].append(subkey)
 
     def run(self):
         try:
@@ -40,16 +40,19 @@ class TweetListenerThread(threading.Thread):
             time.sleep(1)
 
     def do_checks(self):
-        for user_id, user_data in self.by_user.items():
-            for channel, last_check_time in user_data.items():
+        for user_id, user_channels in self.by_user.items():
+            for channel in user_channels:
                 if self.rate_limit_manager.time_for_periodic_check(
                         user_id,
                         rate_limit.USER_TIMELINE,
-                        len(user_data),
+                        len(user_channels),
                         channel,
                 ):
-                    self.check(user_id, channel)
-                    user_data[channel] = time.time()
+                    try:
+                        self.check(user_id, channel)
+                    except Exception:
+                        logging.error(traceback.format_exc())
+
 
     def check(self, user_id, channel):
         logging.debug("Checking update for {} on {}".format(user_id, channel))
