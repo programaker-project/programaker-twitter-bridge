@@ -33,6 +33,7 @@ RATE_LIMIT_MANAGER = rate_limit.RateLimitManager()
 AUTH = auth.AuthHandler(config, STORAGE)
 LISTENER = TweetListener(AUTH, STORAGE, RATE_LIMIT_MANAGER)
 ENDPOINT = config.get_bridge_endpoint()
+IS_PUBLIC = os.getenv('TWITTER_PUBLIC_BRIDGE', '0') in ('1', 't', 'true')
 
 callback_url = utils.ws_endpoint_to_callback_url(ENDPOINT)
 print("OAuth callback URL:", callback_url)
@@ -91,6 +92,7 @@ bridge = PlazaBridge(
     name="Twitter",
     endpoint=ENDPOINT,
     icon=assets.open_icon(),
+    is_public=IS_PUBLIC,
     events=['on_new_tweet'],
 )
 
