@@ -88,6 +88,7 @@ class Registerer(MessageBasedServiceRegistration):
 bridge = PlazaBridge(
     name="Twitter",
     endpoint=ENDPOINT,
+    icon=assets.open_icon(),
     events=['on_new_tweet'],
 )
 
