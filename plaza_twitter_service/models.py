@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, MetaData, Column, ForeignKey, UniqueConstraint, Table
+from sqlalchemy import Column, BigInteger, Integer, String, MetaData, Column, ForeignKey, UniqueConstraint, Table
 
 metadata = MetaData()
 
@@ -23,4 +23,4 @@ LastTweetByUser = Table(
     'LAST_TWEET_BY_USER', metadata,
     Column('listener_id', String(36), ForeignKey('PLAZA_USERS.id'), primary_key=True),
     Column('listened_id', String(256), primary_key=True), # Twitter handle
-    Column('tweet_id', Integer))
+    Column('tweet_id', BigInteger))
