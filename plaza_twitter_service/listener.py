@@ -3,27 +3,15 @@ import os
 import logging
 import threading
 import traceback
+from . import rate_limit
 
-
-# See https://developer.twitter.com/en/docs/basics/rate-limits for more info
-
-TIMELINE_RATE_LIMIT_AMOUNT = 900
-TIMELINE_RATE_LIMIT_WINDOW_SECS = 15 * 60  # 15 Minutes
-
-# How much "free-space" should be left for non-accounted additions.
-# Later added checks can get some slack from this margin
-RATE_LIMIT_MARGIN = 0.5
-
-MIN_UPDATE_PERIOD = 60  # Minimal time between updates on a single user account
 NUM_TWEETS_PER_CHECK = 3  # How many tweets are retrieved in a single check
 
-assert 0 < RATE_LIMIT_MARGIN < 1
-
-
 class TweetListenerThread(threading.Thread):
-    def __init__(self, bot):
+    def __init__(self, bot, rate_limit_manager):
         threading.Thread.__init__(self)
         self.bot = bot
+        self.rate_limit_manager = rate_limit_manager
         self.by_user = {}
         self.to_check = {}
 
@@ -53,21 +41,13 @@ class TweetListenerThread(threading.Thread):
 
     def do_checks(self):
         for user_id, user_data in self.by_user.items():
-            user_update_period = (((TIMELINE_RATE_LIMIT_WINDOW_SECS / TIMELINE_RATE_LIMIT_AMOUNT)
-                                   / RATE_LIMIT_MARGIN)
-                                  * len(user_data))
-
             for channel, last_check_time in user_data.items():
-
-                time_to_update = False
-                if last_check_time is None:
-                    time_to_update = True
-                else:
-                    time_since_update = time.time() - last_check_time
-                    time_to_update = ((time_since_update > MIN_UPDATE_PERIOD)
-                                      and (time_since_update > user_update_period))
-
-                if time_to_update:
+                if self.rate_limit_manager.time_for_periodic_check(
+                        user_id,
+                        rate_limit.USER_TIMELINE,
+                        len(user_data),
+                        channel,
+                ):
                     self.check(user_id, channel)
                     user_data[channel] = time.time()
 
@@ -77,9 +57,9 @@ class TweetListenerThread(threading.Thread):
 
 
 class TweetListener:
-    def __init__(self, api_dispatcher, storage):
+    def __init__(self, api_dispatcher, storage, rate_limit_manager):
         self.api_dispatcher = api_dispatcher
-        self.thread = TweetListenerThread(self)
+        self.thread = TweetListenerThread(self, rate_limit_manager)
         self.storage = storage
 
     def add_to_user(self, user, subkey):

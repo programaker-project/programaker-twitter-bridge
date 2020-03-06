@@ -22,14 +22,16 @@ from plaza_twitter_service import (
     storage,
     assets,
     utils,
+    rate_limit,
 )
 
 twitter_token = config.get_twitter_token()
 twitter_token_secret = config.get_twitter_token_secret()
 STORAGE = storage.get_engine()
+RATE_LIMIT_MANAGER = rate_limit.RateLimitManager()
 
 AUTH = auth.AuthHandler(config, STORAGE)
-LISTENER = TweetListener(AUTH, STORAGE)
+LISTENER = TweetListener(AUTH, STORAGE, RATE_LIMIT_MANAGER)
 ENDPOINT = config.get_bridge_endpoint()
 
 callback_url = utils.ws_endpoint_to_callback_url(ENDPOINT)
@@ -130,6 +132,8 @@ LISTENER.on_message = send_message_to_platform
 )
 def get_last_tweet(account_name, extra_data):
     timeline = AUTH.get_api(extra_data.user_id).user_timeline(account_name, count=1)
+    RATE_LIMIT_MANAGER.notify_will_use(extra_data.user_id, rate_limit.USER_TIMELINE)
+
     if len(timeline) == 0:
         raise Exception("Empty timeline")
     return timeline[0]._json
