@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import json
 import logging
 import os
 import traceback
+import urllib.parse
 
 from plaza_bridge import (
     PlazaBridge,  # Import bridge functionality
@@ -13,35 +15,85 @@ from plaza_bridge import (
 )
 import tweepy
 
-from plaza_twitter_service import TweetListener
-from plaza_twitter_service import config
-from plaza_twitter_service import storage
-
+from plaza_twitter_service import (
+    auth,
+    TweetListener,
+    config,
+    storage,
+    assets,
+    utils,
+)
 
 twitter_token = config.get_twitter_token()
 twitter_token_secret = config.get_twitter_token_secret()
 STORAGE = storage.get_engine()
 
-_api_auth = tweepy.auth.AppAuthHandler(twitter_token, twitter_token_secret)
-TWITTER_API = tweepy.API(_api_auth)
+AUTH = auth.AuthHandler(config, STORAGE)
+LISTENER = TweetListener(AUTH, STORAGE)
+ENDPOINT = config.get_bridge_endpoint()
 
-LISTENER = TweetListener(TWITTER_API, STORAGE)
-
+callback_url = utils.ws_endpoint_to_callback_url(ENDPOINT)
+print("OAuth callback URL:", callback_url)
 
 class Registerer(MessageBasedServiceRegistration):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, bridge, *args, **kwargs):
         MessageBasedServiceRegistration.__init__(self, *args, **kwargs)
+        self.auth_to_connection = {  }
+        self.bridge = bridge
 
     def get_call_to_action_text(self, extra_data):
-        return """You're ready to read twitter"""
+        if not extra_data:
+            # Initial getter, we could also ignore it
+            return """
+            Log in Twitter to connect to the service:
+            """
+
+        auth = tweepy.OAuthHandler(twitter_token, twitter_token_secret, callback_url)
+
+        redirect_url = auth.get_authorization_url()
+        self.auth_to_connection[auth.request_token['oauth_token']] = (extra_data.user_id, auth.request_token)
+
+        return """
+        Log in Twitter to connect to the service:
+
+        <a href="{url}">Log in</a>
+        """.format(
+            url=redirect_url
+        )
+
+    def register(self, data, extra_data):
+        oauth_data = urllib.parse.parse_qs(data['query_string'])
+
+        token = oauth_data['oauth_token'][0]
+        verifier = oauth_data['oauth_verifier'][0]
+
+        connection, request_token = self.auth_to_connection[token]
+
+        auth = tweepy.OAuthHandler(twitter_token, twitter_token_secret)
+        auth.request_token = request_token
+        auth.get_access_token(verifier)
+
+        is_new = STORAGE.register_user(connection, (auth.access_token, auth.access_token_secret))
+
+        logging.info("(new={}) Connection {} is registered with: {}".format(
+            is_new, connection, auth.access_token,
+        ))
+
+        if is_new:
+            user = tweepy.API(auth).me()
+            self.bridge.establish_connection(connection, name=user.screen_name)
+        return True
 
 
 bridge = PlazaBridge(
     name="Twitter",
-    endpoint=config.get_bridge_endpoint(),
+    endpoint=ENDPOINT,
     events=['on_new_tweet'],
-    registerer=Registerer(),
 )
+
+registerer = Registerer(bridge=bridge)
+bridge.registerer = registerer
+
 on_new_tweet_event = bridge.events.on_new_tweet
 on_new_tweet_event.add_trigger_block(
     id="on_new_tweet_by_account",
@@ -76,7 +128,7 @@ LISTENER.on_message = send_message_to_platform
     ],
 )
 def get_last_tweet(account_name, extra_data):
-    timeline = TWITTER_API.user_timeline(account_name, count=1)
+    timeline = AUTH.get_api(extra_data.user_id).user_timeline(account_name, count=1)
     if len(timeline) == 0:
         raise Exception("Empty timeline")
     return timeline[0]._json

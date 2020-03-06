@@ -77,8 +77,8 @@ class TweetListenerThread(threading.Thread):
 
 
 class TweetListener:
-    def __init__(self, api, storage):
-        self.api = api
+    def __init__(self, api_dispatcher, storage):
+        self.api_dispatcher = api_dispatcher
         self.thread = TweetListenerThread(self)
         self.storage = storage
 
@@ -86,7 +86,7 @@ class TweetListener:
         self.thread.add_to_user(user, subkey)
 
     def check(self, user_id, channel):
-        tweets = self.api.user_timeline(channel, count=NUM_TWEETS_PER_CHECK)
+        tweets = self.api_dispatcher.get_api(user_id).user_timeline(channel, count=NUM_TWEETS_PER_CHECK)
         last_tweet_by_user = self.storage.get_last_tweet_by_user(user_id, channel) or 0
         for tweet in tweets[::-1]:
             tweet_id = tweet._json['id']

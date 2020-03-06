@@ -34,6 +34,57 @@ class StorageEngine:
     def _connect_db(self):
         return EngineContext(self.engine)
 
+    def register_user(self, connection_id, token_info):
+        with self._connect_db() as conn:
+            access_token, access_token_secret = token_info
+
+            check = conn.execute(
+                sqlalchemy.select([models.TwitterUserRegistration.c.id])
+                .where(models.TwitterUserRegistration.c.twitter_token == access_token)
+            ).fetchone()
+
+            if check is None:
+                op = models.TwitterUserRegistration.insert().values(twitter_token=access_token,
+                                                                    twitter_token_secret=access_token_secret)
+                result = conn.execute(op)
+                twitter_user_id = result.inserted_primary_key[0]
+            else:
+                twitter_user_id = check.id
+
+            check = conn.execute(
+            sqlalchemy.select([models.PlazaUsersInTwitter.c.twitter_id])
+                .where(models.PlazaUsersInTwitter.c.twitter_id == twitter_user_id)
+            ).fetchone()
+
+            if check is None:
+                insert = models.PlazaUsersInTwitter.insert().values(plaza_id=connection_id,
+                                                                    twitter_id=twitter_user_id)
+                conn.execute(insert)
+                return True
+            else:
+                return False
+
+    def get_consumer_key(self, connection_id):
+        with self._connect_db() as conn:
+            join = sqlalchemy.join(models.TwitterUserRegistration, models.PlazaUsersInTwitter,
+                                   models.TwitterUserRegistration.c.id
+                                   == models.PlazaUsersInTwitter.c.twitter_id)
+
+            results = conn.execute(
+                sqlalchemy.select([
+                    models.TwitterUserRegistration.c.twitter_token,
+                    models.TwitterUserRegistration.c.twitter_token_secret,
+                ])
+                .select_from(join)
+                .where(models.PlazaUsersInTwitter.c.plaza_id == connection_id)
+            ).fetchall()
+
+            return [
+                dict(zip(["token", "token_secret"], row))
+                for row in results
+            ]
+
+
     def get_last_tweet_by_user(self, user_id, channel):
         with self._connect_db() as conn:
             result = conn.execute(
