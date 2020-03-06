@@ -120,6 +120,7 @@ def send_message_to_platform(user_id, message):
         to_user=user_id,
         content=message._json,
         event=message._json,
+        subkey=message._json['user']['screen_name']
     )
 
 LISTENER.on_message = send_message_to_platform
