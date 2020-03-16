@@ -155,8 +155,8 @@ LISTENER.on_timeline_update = send_timeline_update_to_platform
     ],
 )
 def get_last_tweet(account_name, extra_data):
-    timeline = AUTH.get_api(extra_data.user_id).user_timeline(account_name, count=1)
     RATE_LIMIT_MANAGER.notify_will_use(extra_data.user_id, rate_limit.USER_TIMELINE)
+    timeline = AUTH.get_api(extra_data.user_id).user_timeline(account_name, count=1)
 
     if len(timeline) == 0:
         raise Exception("Empty timeline")
