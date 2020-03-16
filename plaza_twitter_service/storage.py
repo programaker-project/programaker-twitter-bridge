@@ -136,6 +136,35 @@ class StorageEngine:
 
             conn.execute(op)
 
+    def get_last_timeline_tweet_by_user(self, user_id):
+        with self._connect_db() as conn:
+            result = conn.execute(
+                sqlalchemy.select([models.LastTweetInUserTimeline.c.tweet_id])
+                .where(models.LastTweetByUser.c.listener_id == user_id)).fetchone()
+
+            if result is None:
+                return None
+
+            return result[0]
+
+    def set_last_timeline_tweet_by_user(self, user_id, tweet_id):
+        with self._connect_db() as conn:
+            # TODO: Refactor with the one above
+            result = conn.execute(
+                sqlalchemy.select([models.LastTweetInUserTimeline.c.tweet_id])
+                .where(models.LastTweetByUser.c.listener_id == user_id)).fetchone()
+
+            if result is None:
+                op = models.LastTweetInUserTimeline.insert().values(listener_id=user_id,
+                                                                    tweet_id=tweet_id)
+            else:
+                op = (models.LastTweetInUserTimeline
+                      .update()
+                      .where(models.LastTweetInUserTimeline.c.listener_id == user_id)
+                      .values(tweet_id=tweet_id))
+
+            conn.execute(op)
+
 
 def get_engine():
     # Create path to SQLite file, if its needed.

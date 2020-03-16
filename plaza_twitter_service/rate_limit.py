@@ -15,6 +15,7 @@ MIN_UPDATE_PERIOD = 60 * SECONDS # Minimal time between updates on a single user
 
 # Endpoint information
 USER_TIMELINE = 'statuses/user_timeline'
+HOME_TIMELINE = 'statuses/home_timeline'
 
 ENDPOINTS = {
     # POST
@@ -55,6 +56,7 @@ ENDPOINTS = {
     "statuses/retweets_of_me":{ "limit_window": 15*MINUTES, "per_user_limit": 75},
     "statuses/retweets/:id":{ "limit_window": 15*MINUTES, "per_user_limit": 75 },
     "statuses/show/:id":{ "limit_window": 15*MINUTES, "per_user_limit": 900 },
+    "statuses/home_timeline":{ "limit_window": 15*MINUTES, "per_user_limit": 15},
     "statuses/user_timeline":{ "limit_window": 15*MINUTES, "per_user_limit": 900},
     "trends/available":{ "limit_window": 15*MINUTES, "per_user_limit": 75 },
     "trends/closest":{ "limit_window": 15*MINUTES, "per_user_limit": 75},

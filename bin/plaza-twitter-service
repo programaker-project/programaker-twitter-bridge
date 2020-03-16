@@ -93,7 +93,7 @@ bridge = PlazaBridge(
     endpoint=ENDPOINT,
     icon=assets.open_icon(),
     is_public=IS_PUBLIC,
-    events=['on_new_tweet'],
+    events=['on_new_tweet', 'on_new_tweet_on_home_timeline'],
 )
 
 registerer = Registerer(bridge=bridge)
@@ -109,10 +109,22 @@ on_new_tweet_event.add_trigger_block(
 )
 
 
+on_new_tweet_on_home_timeline_event = bridge.events.on_new_tweet_on_home_timeline
+on_new_tweet_on_home_timeline_event.add_trigger_block(
+    id="on_new_tweet_on_home_timeline",
+    message="When new tweet on timeline. Save to %1",
+    arguments=[VariableBlockArgument(str)],
+    save_to=BlockContext.ARGUMENTS[0],
+)
+
+
 @on_new_tweet_event.on_new_listeners
 def on_new_listeners(user, subkey):
     LISTENER.add_to_user(user, subkey)
 
+@on_new_tweet_on_home_timeline_event.on_new_listeners
+def on_new_timeline_listeners(user, _subkey):
+    LISTENER.add_home_timeline(user)
 
 def send_message_to_platform(user_id, message):
     logging.info("sending message: {}".format(get_tweet_message(message._json)))
@@ -123,7 +135,16 @@ def send_message_to_platform(user_id, message):
         subkey=message._json['user']['screen_name']
     )
 
+def send_timeline_update_to_platform(user_id, message):
+    logging.info("sending timeline update: {}".format(get_tweet_message(message._json)))
+    on_new_tweet_on_home_timeline_event.send(
+        to_user=user_id,
+        content=message._json,
+        event=message._json,
+    )
+
 LISTENER.on_message = send_message_to_platform
+LISTENER.on_timeline_update = send_timeline_update_to_platform
 
 
 @bridge.getter(

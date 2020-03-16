@@ -24,3 +24,8 @@ LastTweetByUser = Table(
     Column('listener_id', String(36), ForeignKey('PLAZA_USERS.id'), primary_key=True),
     Column('listened_id', String(256), primary_key=True), # Twitter handle
     Column('tweet_id', BigInteger))
+
+LastTweetInUserTimeline = Table(
+    'LAST_TWEET_IN_USER_TIMELINE', metadata,
+    Column('listener_id', String(36), ForeignKey('PLAZA_USERS.id'), primary_key=True),
+    Column('tweet_id', BigInteger))

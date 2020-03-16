@@ -14,6 +14,7 @@ class TweetListenerThread(threading.Thread):
         self.rate_limit_manager = rate_limit_manager
         self.by_user = {}
         self.to_check = {}
+        self.timelines = set()
 
     def start(self):
         threading.Thread.start(self)
@@ -23,6 +24,10 @@ class TweetListenerThread(threading.Thread):
         if user not in self.by_user:
             self.by_user[user] = []
         self.by_user[user].append(subkey)
+
+    def add_home_timeline(self, user):
+        logging.debug("New home timeline: {}".format(user))
+        self.timelines.add(user)
 
     def run(self):
         try:
@@ -36,10 +41,23 @@ class TweetListenerThread(threading.Thread):
 
     def inner_loop(self):
         while 1:
-            self.do_checks()
+            self.check_timelines()
+            self.check_monitors()
             time.sleep(1)
 
-    def do_checks(self):
+    def check_timelines(self):
+        for user_id in self.timelines:
+            if self.rate_limit_manager.time_for_periodic_check(
+                    user_id,
+                    rate_limit.HOME_TIMELINE,
+                    1
+            ):
+                try:
+                    self.check_timeline(user_id)
+                except Exception:
+                    logging.error(traceback.format_exc())
+
+    def check_monitors(self):
         for user_id, user_channels in self.by_user.items():
             for channel in user_channels:
                 if self.rate_limit_manager.time_for_periodic_check(
@@ -59,6 +77,11 @@ class TweetListenerThread(threading.Thread):
         self.bot.check(user_id, channel)
 
 
+    def check_timeline(self, user_id):
+        logging.debug("Checking timeline update for {}".format(user_id))
+        self.bot.check_timeline(user_id)
+
+
 class TweetListener:
     def __init__(self, api_dispatcher, storage, rate_limit_manager):
         self.api_dispatcher = api_dispatcher
@@ -68,6 +91,9 @@ class TweetListener:
     def add_to_user(self, user, subkey):
         self.thread.add_to_user(user, subkey)
 
+    def add_home_timeline(self, user):
+        self.thread.add_home_timeline(user)
+
     def check(self, user_id, channel):
         tweets = self.api_dispatcher.get_api(user_id).user_timeline(channel, count=NUM_TWEETS_PER_CHECK)
         last_tweet_by_user = self.storage.get_last_tweet_by_user(user_id, channel) or 0
@@ -76,6 +102,14 @@ class TweetListener:
             if tweet_id > last_tweet_by_user:
                 self.storage.set_last_tweet_by_user(user_id, channel, tweet_id)
                 self.on_update(user_id, tweet)
+
+    def check_timeline(self, user_id):
+        last_timeline_tweet_id = self.storage.get_last_timeline_tweet_by_user(user_id) or None
+        tweets = self.api_dispatcher.get_api(user_id).home_timeline(since_id=last_timeline_tweet_id)
+        for tweet in tweets[::-1]:
+            tweet_id = tweet._json['id']
+            self.storage.set_last_timeline_tweet_by_user(user_id, tweet_id)
+            self.on_timeline_update(user_id, tweet)
 
     def start(self):
         self.thread.start()
