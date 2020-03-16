@@ -186,6 +186,18 @@ def get_tweet_hashtags(tweet_data, extra_data=None):
     hashtags = tweet_data.get('entities', {}).get('hashtags', [])
     return [tag['text'] for tag in hashtags]
 
+@bridge.getter(
+    id="get_tweet_author",  # Give it an ID
+    message="Author of tweet %1",  # Set block message
+    arguments=[
+        BlockArgument(str, '<< Add here a "tweet" block >>')
+    ]
+)
+def get_tweet_author(tweet_data, extra_data=None):
+    name = tweet_data.get('user', {}).get('screen_name', None)
+    return name
+
+
 
 if __name__ == "__main__":
     logging.basicConfig(
