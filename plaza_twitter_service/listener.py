@@ -5,7 +5,7 @@ import threading
 import traceback
 from . import rate_limit
 
-NUM_TWEETS_PER_CHECK = 3  # How many tweets are retrieved in a single check
+NUM_TWEETS_PER_CHECK = 10  # How many tweets are retrieved in a single check
 
 class TweetListenerThread(threading.Thread):
     def __init__(self, bot, rate_limit_manager):
