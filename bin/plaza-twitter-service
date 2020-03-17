@@ -64,6 +64,11 @@ class Registerer(MessageBasedServiceRegistration):
             url=redirect_url
         )
 
+    def _preload_followers(self, db_conn, api, twitter_id):
+        followers = set(api.followers_ids(screen_name=api.auth.get_username()))
+        STORAGE._initialize_followers(db_conn, twitter_id, followers)
+
+
     def register(self, data, extra_data):
         oauth_data = urllib.parse.parse_qs(data['query_string'])
 
@@ -76,14 +81,17 @@ class Registerer(MessageBasedServiceRegistration):
         auth.request_token = request_token
         auth.get_access_token(verifier)
 
-        is_new = STORAGE.register_user(connection, (auth.access_token, auth.access_token_secret))
+        api = tweepy.API(auth)
+        user = api.me()
+        is_new = STORAGE.register_user(connection, (auth.access_token, auth.access_token_secret),
+                                       in_add_transaction=lambda db_conn, twitter_id: self._preload_followers(db_conn, api, twitter_id))
 
         logging.info("(new={}) Connection {} is registered with: {}".format(
             is_new, connection, auth.access_token,
         ))
 
         if is_new:
-            user = tweepy.API(auth).me()
+            LISTENER.add_new_user(connection)
             self.bridge.establish_connection(connection, name=user.screen_name)
         return True
 
@@ -93,7 +101,12 @@ bridge = PlazaBridge(
     endpoint=ENDPOINT,
     icon=assets.open_icon(),
     is_public=IS_PUBLIC,
-    events=['on_new_tweet', 'on_new_tweet_on_home_timeline'],
+    events=[
+        'on_new_tweet',
+        'on_new_tweet_on_home_timeline',
+        'on_followed',
+        'on_unfollowed',
+    ],
 )
 
 registerer = Registerer(bridge=bridge)
@@ -113,6 +126,23 @@ on_new_tweet_on_home_timeline_event = bridge.events.on_new_tweet_on_home_timelin
 on_new_tweet_on_home_timeline_event.add_trigger_block(
     id="on_new_tweet_on_home_timeline",
     message="When new tweet on timeline. Save to %1",
+    arguments=[VariableBlockArgument(str)],
+    save_to=BlockContext.ARGUMENTS[0],
+)
+
+
+on_followed_event = bridge.events.on_followed
+on_followed_event.add_trigger_block(
+    id="on_followed",
+    message="When followed. Save user to %1",
+    arguments=[VariableBlockArgument(str)],
+    save_to=BlockContext.ARGUMENTS[0],
+)
+
+on_unfollowed_event = bridge.events.on_unfollowed
+on_unfollowed_event.add_trigger_block(
+    id="on_unfollowed",
+    message="When unfollowed. Save user to %1",
     arguments=[VariableBlockArgument(str)],
     save_to=BlockContext.ARGUMENTS[0],
 )
@@ -143,8 +173,32 @@ def send_timeline_update_to_platform(user_id, message):
         event=message._json,
     )
 
+def send_follow_to_platform(user_id, follower_id):
+    RATE_LIMIT_MANAGER.notify_will_use(user_id, rate_limit.USER_INFO)
+    user = AUTH.get_api(user_id).get_user(follower_id)
+
+    logging.info("FOLLOWED: {}".format(user.screen_name))
+    on_followed_event.send(
+        to_user=user_id,
+        content=user.screen_name,
+        event=user.screen_name,
+    )
+
+def send_unfollow_to_platform(user_id, follower_id):
+    RATE_LIMIT_MANAGER.notify_will_use(user_id, rate_limit.USER_INFO)
+    user = AUTH.get_api(user_id).get_user(follower_id)
+
+    logging.info("UNFOLLOWED: {}".format(user.screen_name))
+    on_unfollowed_event.send(
+        to_user=user_id,
+        content=user.screen_name,
+        event=user.screen_name,
+    )
+
 LISTENER.on_message = send_message_to_platform
 LISTENER.on_timeline_update = send_timeline_update_to_platform
+LISTENER.on_new_follow = send_follow_to_platform
+LISTENER.on_new_unfollow = send_unfollow_to_platform
 
 
 @bridge.getter(
@@ -197,7 +251,36 @@ def get_tweet_author(tweet_data, extra_data=None):
     name = tweet_data.get('user', {}).get('screen_name', None)
     return name
 
+@bridge.operation(
+    id="follow_user",  # Give it an ID
+    message="Follow %1",  # Set block message
+    arguments=[
+        BlockArgument(str, 'obichero'),
+    ]
+)
+def follow_user(screen_name, extra_data=None):
+    RATE_LIMIT_MANAGER.notify_will_use(extra_data.user_id, rate_limit.FOLLOW)
+    api = AUTH.get_api(extra_data.user_id)
+    try:
+        api.create_friendship(screen_name=screen_name)
+    except tweepy.error.TweepError as e:
+        errors = json.loads(e.response.text).get('errors', [])
+        if len(errors) > 0:
+            if errors[0].get('code', None) == 160: # "You've already requested to follow ..."
+                return
+        raise
 
+@bridge.operation(
+    id="unfollow_user",  # Give it an ID
+    message="Unfollow %1",  # Set block message
+    arguments=[
+        BlockArgument(str, 'obichero'),
+    ]
+)
+def unfollow_user(screen_name, extra_data=None):
+    RATE_LIMIT_MANAGER.notify_will_use(extra_data.user_id, rate_limit.FOLLOW)
+    api = AUTH.get_api(extra_data.user_id)
+    api.destroy_friendship(screen_name=screen_name)
 
 if __name__ == "__main__":
     logging.basicConfig(

@@ -34,7 +34,7 @@ class StorageEngine:
     def _connect_db(self):
         return EngineContext(self.engine)
 
-    def register_user(self, connection_id, token_info):
+    def register_user(self, connection_id, token_info, in_add_transaction=None):
         with self._connect_db() as conn:
             access_token, access_token_secret = token_info
 
@@ -69,6 +69,9 @@ class StorageEngine:
             ).fetchone()
 
             if check is None:
+                if in_add_transaction is not None:
+                    in_add_transaction(conn, twitter_user_id)
+
                 insert = models.PlazaUsersInTwitter.insert().values(plaza_id=connection_id,
                                                                     twitter_id=twitter_user_id)
                 conn.execute(insert)
@@ -152,7 +155,7 @@ class StorageEngine:
             # TODO: Refactor with the one above
             result = conn.execute(
                 sqlalchemy.select([models.LastTweetInUserTimeline.c.tweet_id])
-                .where(models.LastTweetByUser.c.listener_id == user_id)).fetchone()
+                .where(models.LastTweetInUserTimeline.c.listener_id == user_id)).fetchone()
 
             if result is None:
                 op = models.LastTweetInUserTimeline.insert().values(listener_id=user_id,
@@ -162,6 +165,60 @@ class StorageEngine:
                       .update()
                       .where(models.LastTweetInUserTimeline.c.listener_id == user_id)
                       .values(tweet_id=tweet_id))
+
+            conn.execute(op)
+
+    def get_twitter_user_id(self, user_id):
+        with self._connect_db() as conn:
+            result = conn.execute(
+                sqlalchemy.select([models.PlazaUsersInTwitter.c.twitter_id])
+                .where(models.PlazaUsersInTwitter.c.plaza_id == user_id)
+            ).fetchone()
+
+            return result.twitter_id
+
+    def get_followers(self, twitter_id):
+        with self._connect_db() as conn:
+            results = conn.execute(
+                sqlalchemy.select([models.TwitterFollows.c.follower_id])
+                .where(models.TwitterFollows.c.followed_id == twitter_id)).fetchall()
+
+            return map(lambda x: x.follower_id, results)
+
+    def _initialize_followers(self, conn, twitter_id, followers):
+        conn.execute(
+            models.TwitterFollows.insert(),
+            [
+                dict(
+                    followed_id=twitter_id,
+                    follower_id=follower,
+                )
+                for follower in followers
+            ],
+        )
+
+    def get_all_users(self):
+        with self._connect_db() as conn:
+            # These are seected from PlazaUsersInTwitter to avoid the ones which
+            # have no established connections.
+            results = conn.execute(
+                sqlalchemy.select([models.PlazaUsersInTwitter.c.plaza_id])
+            ).fetchall()
+
+            return map(lambda x: x.plaza_id, results)
+
+    def add_follower(self, twitter_id, follower_id):
+        with self._connect_db() as conn:
+            op = models.TwitterFollows.insert().values(followed_id=twitter_id,
+                                                       follower_id=follower_id)
+
+            conn.execute(op)
+
+    def remove_follower(self, twitter_id, follower_id):
+        with self._connect_db() as conn:
+            op = models.TwitterFollows.delete().where(
+                sqlalchemy.and_(models.TwitterFollows.c.followed_id == twitter_id,
+                                models.TwitterFollows.c.follower_id == follower_id))
 
             conn.execute(op)
 
