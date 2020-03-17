@@ -19,6 +19,12 @@ PlazaUsersInTwitter = Table(
     Column('twitter_id', Integer, ForeignKey('TWITTER_USER_REGISTRATION.id'), primary_key=True),
     __table_args__=(UniqueConstraint('plaza_id', 'twitter_id')))
 
+TwitterFollows = Table(
+    'TWITTER_FOLLOWS', metadata,
+    Column('followed_id', Integer, ForeignKey('TWITTER_USER_REGISTRATION.id'), primary_key=True),
+    Column('follower_id', Integer, primary_key=True),
+)
+
 LastTweetByUser = Table(
     'LAST_TWEET_BY_USER', metadata,
     Column('listener_id', String(36), ForeignKey('PLAZA_USERS.id'), primary_key=True),

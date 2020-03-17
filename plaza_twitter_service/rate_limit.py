@@ -16,14 +16,17 @@ MIN_UPDATE_PERIOD = 60 * SECONDS # Minimal time between updates on a single user
 # Endpoint information
 USER_TIMELINE = 'statuses/user_timeline'
 HOME_TIMELINE = 'statuses/home_timeline'
+FOLLOW = 'friendships/create'
+FOLLOWERS_IDS = 'followers/ids'
+USER_INFO = 'users/show'
 
 ENDPOINTS = {
     # POST
     "statuses/update": { "limit_window": 3*HOURS, "per_user_limit": 300, "group": "create_content" },
     "statuses/retweet/:id": { "limit_window": 3*HOURS, "per_user_limit": 300, "group": "create_content" },
-    "favorites/create/": { "limit_window": 24*HOURS, "per_user_limit": 1000 },
-    "friendships/create/": { "limit_window": 24*HOURS, "per_user_limit": 400 },
-    "direct_messages/events/new/": { "limit_window": 24*HOURS, "per_user_limit": 1000 },
+    "favorites/create": { "limit_window": 24*HOURS, "per_user_limit": 1000 },
+    "friendships/create": { "limit_window": 24*HOURS, "per_user_limit": 400 },
+    "direct_messages/events/new": { "limit_window": 24*HOURS, "per_user_limit": 1000 },
 
     # GET
     "account/verify_credentials":{ "limit_window": 15*MINUTES, "per_user_limit": 75 },
