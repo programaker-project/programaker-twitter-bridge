@@ -22,7 +22,7 @@ PlazaUsersInTwitter = Table(
 TwitterFollows = Table(
     'TWITTER_FOLLOWS', metadata,
     Column('followed_id', Integer, ForeignKey('TWITTER_USER_REGISTRATION.id'), primary_key=True),
-    Column('follower_id', Integer, primary_key=True),
+    Column('follower_id', BigInteger, primary_key=True),
 )
 
 LastTweetByUser = Table(
