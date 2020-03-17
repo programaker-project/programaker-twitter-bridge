@@ -185,6 +185,17 @@ class StorageEngine:
 
             return map(lambda x: x.follower_id, results)
 
+    def is_follower(self, twitter_id, follower_id):
+        with self._connect_db() as conn:
+            result = conn.execute(
+                sqlalchemy.select([models.TwitterFollows.c.follower_id])
+                .where(
+                    sqlalchemy.and_(models.TwitterFollows.c.followed_id == twitter_id,
+                                    models.TwitterFollows.c.follower_id == follower_id,
+                    ))).fetchone()
+
+            return result is not None
+
     def _initialize_followers(self, conn, twitter_id, followers):
         conn.execute(
             models.TwitterFollows.insert(),

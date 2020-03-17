@@ -282,6 +282,21 @@ def unfollow_user(screen_name, extra_data=None):
     api = AUTH.get_api(extra_data.user_id)
     api.destroy_friendship(screen_name=screen_name)
 
+@bridge.getter(
+    id="is_user_follower",  # Give it an ID
+    message="Is %1 a follower?",  # Set block message
+    arguments=[
+        BlockArgument(str, 'obichero'),
+    ]
+)
+def is_user_follower(screen_name, extra_data=None):
+    twitter_id = STORAGE.get_twitter_user_id(extra_data.user_id)
+
+    RATE_LIMIT_MANAGER.notify_will_use(extra_data.user_id, rate_limit.USER_INFO)
+    api = AUTH.get_api(extra_data.user_id)
+    follower_id = api.get_user(screen_name=screen_name).id
+    return STORAGE.is_follower(twitter_id, follower_id)
+
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s [%(filename)s] %(message)s")
