@@ -2,7 +2,7 @@
 tweepy
 
 # Plaza
-plaza-bridge
+plaza-bridge==0.0.2dev10
 
 # SQLAlchemy
 SQLAlchemy
