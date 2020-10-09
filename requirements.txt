@@ -1,8 +1,8 @@
 # Twitter
 tweepy
 
-# Plaza
-plaza-bridge
+# Programaker
+programaker-bridge
 
 # SQLAlchemy
 SQLAlchemy
