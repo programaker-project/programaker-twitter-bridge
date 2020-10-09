@@ -90,9 +90,8 @@ class Registerer(MessageBasedServiceRegistration):
             is_new, connection, auth.access_token,
         ))
 
-        if is_new:
-            LISTENER.add_new_user(connection)
-            self.bridge.establish_connection(connection, name=user.screen_name)
+        LISTENER.add_new_user(connection)
+        self.bridge.establish_connection(connection, name=user.screen_name)
         return True
 
 
