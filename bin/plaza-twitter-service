@@ -33,6 +33,8 @@ RATE_LIMIT_MANAGER = rate_limit.RateLimitManager()
 AUTH = auth.AuthHandler(config, STORAGE)
 LISTENER = TweetListener(AUTH, STORAGE, RATE_LIMIT_MANAGER)
 ENDPOINT = config.get_bridge_endpoint()
+AUTH_TOKEN = config.get_auth_token()
+
 IS_PUBLIC = os.getenv('TWITTER_PUBLIC_BRIDGE', '0') in ('1', 't', 'true')
 
 callback_url = utils.ws_endpoint_to_callback_url(ENDPOINT)
@@ -107,6 +109,7 @@ bridge = PlazaBridge(
         'on_followed',
         'on_unfollowed',
     ],
+    token=AUTH_TOKEN,
 )
 
 registerer = Registerer(bridge=bridge)

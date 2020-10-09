@@ -6,10 +6,12 @@ from xdg import XDG_CONFIG_HOME
 PLAZA_BRIDGE_ENDPOINT_ENV = 'PLAZA_BRIDGE_ENDPOINT'
 TWITTER_CONSUMER_API_TOKEN_ENV = 'TWITTER_CONSUMER_API_TOKEN'
 TWITTER_CONSUMER_API_TOKEN_SECRET_ENV = 'TWITTER_CONSUMER_API_TOKEN_SECRET'
+PLAZA_AUTH_TOKEN_ENV = 'PLAZA_BRIDGE_AUTH_TOKEN'
 
 PLAZA_BRIDGE_ENDPOINT_INDEX = "plaza_bridge_endpoint"
 TWITTER_CONSUMER_API_TOKEN_INDEX = 'twitter_consumer_api_token'
 TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX = 'twitter_consumer_api_token_secret'
+PLAZA_AUTH_TOKEN_INDEX = 'plaza_authentication_token'
 
 global directory, config_file
 directory = os.path.join(XDG_CONFIG_HOME, "plaza", "bridges", "twitter")
@@ -73,3 +75,17 @@ def get_twitter_token_secret():
             raise Exception('No consumer API token *secret* introduced')
         _save_config(config)
     return config[TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX]
+
+
+def get_auth_token():
+    env_val = os.getenv(PLAZA_AUTH_TOKEN_ENV, None)
+    if env_val is not None:
+        return env_val
+
+    config = _get_config()
+    if config.get(PLAZA_AUTH_TOKEN_INDEX, None) is None:
+        config[PLAZA_AUTH_TOKEN_INDEX] = input('Plaza authentication TOKEN: ')
+        if not config[PLAZA_AUTH_TOKEN_INDEX]:
+            raise Exception('No authentication token introduced')
+        _save_config(config)
+    return config[PLAZA_AUTH_TOKEN_INDEX]

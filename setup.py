@@ -11,7 +11,7 @@ setup(name='plaza-twitter-service',
       include_package_data=True,
       install_requires = [
           'python-twitter',
-          'plaza_service',
+          'programaker_bridge',
           'xdg',
       ],
       zip_safe=False)
