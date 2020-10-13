@@ -8,8 +8,8 @@ build_and_push:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
     - docker build -t twitter-bridge .
-    - docker tag twitter-bridge "$CI_REGISTRY"/plaza-project/bridges/twitter-bridge:$CI_COMMIT_SHA
-    - docker push "$CI_REGISTRY"/plaza-project/bridges/twitter-bridge:$CI_COMMIT_SHA
+    - docker tag twitter-bridge "$CI_REGISTRY"/programaker-project/bridges/twitter-bridge:$CI_COMMIT_SHA
+    - docker push "$CI_REGISTRY"/programaker-project/bridges/twitter-bridge:$CI_COMMIT_SHA
   only:
     - develop
     - master

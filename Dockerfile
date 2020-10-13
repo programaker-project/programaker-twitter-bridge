@@ -17,4 +17,4 @@ RUN pip install -e /app
 # Bridge database (registrations, chatrooms, ...)
 VOLUME /root/.local/share/plaza/bridges/twitter/db.sqlite
 
-CMD plaza-twitter-service
+CMD programaker-twitter-service

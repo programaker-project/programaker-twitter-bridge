@@ -6,7 +6,13 @@ import sqlalchemy
 
 from . import models
 
-DB_PATH_ENV = 'PLAZA_TWITTER_BRIDGE_DB_PATH'
+DB_PATH_ENV = 'TWITTER_BRIDGE_DB_PATH'
+
+if os.getenv(DB_PATH_ENV, None) is None:
+    # Support old environment variable
+    DB_PATH_ENV = 'PLAZA_TWITTER_BRIDGE_DB_PATH'
+
+
 
 if os.getenv(DB_PATH_ENV, None) is None:
     _DATA_DIRECTORY = os.path.join(XDG_DATA_HOME, "plaza", "bridges", "twitter")

@@ -6,8 +6,8 @@ import os
 import traceback
 import urllib.parse
 
-from plaza_bridge import (
-    PlazaBridge,  # Import bridge functionality
+from programaker_bridge import (
+    ProgramakerBridge,  # Import bridge functionality
     BlockArgument,  # Needed for argument definition
     MessageBasedServiceRegistration,
     VariableBlockArgument,
@@ -15,7 +15,7 @@ from plaza_bridge import (
 )
 import tweepy
 
-from plaza_twitter_service import (
+from programaker_twitter_service import (
     auth,
     TweetListener,
     config,
@@ -97,7 +97,7 @@ class Registerer(MessageBasedServiceRegistration):
         return True
 
 
-bridge = PlazaBridge(
+bridge = ProgramakerBridge(
     name="Twitter",
     endpoint=ENDPOINT,
     icon=assets.open_icon(),
