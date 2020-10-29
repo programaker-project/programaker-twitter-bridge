@@ -1,3 +1,2 @@
-from . import config
-from . import storage
+from . import config, storage
 from .listener import TweetListener

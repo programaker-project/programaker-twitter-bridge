@@ -1,22 +1,22 @@
-import re
 import os
-from xdg import XDG_DATA_HOME
+import re
 
 import sqlalchemy
+from xdg import XDG_DATA_HOME
 
 from . import models
 
-DB_PATH_ENV = 'TWITTER_BRIDGE_DB_PATH'
+DB_PATH_ENV = "TWITTER_BRIDGE_DB_PATH"
 
 if os.getenv(DB_PATH_ENV, None) is None:
     # Support old environment variable
-    DB_PATH_ENV = 'PLAZA_TWITTER_BRIDGE_DB_PATH'
-
-
+    DB_PATH_ENV = "PLAZA_TWITTER_BRIDGE_DB_PATH"
 
 if os.getenv(DB_PATH_ENV, None) is None:
     _DATA_DIRECTORY = os.path.join(XDG_DATA_HOME, "plaza", "bridges", "twitter")
-    CONNECTION_STRING = "sqlite:///{}".format(os.path.join(_DATA_DIRECTORY, 'db.sqlite3'))
+    CONNECTION_STRING = "sqlite:///{}".format(
+        os.path.join(_DATA_DIRECTORY, "db.sqlite3")
+    )
 else:
     CONNECTION_STRING = os.getenv(DB_PATH_ENV)
 
@@ -33,6 +33,7 @@ class EngineContext:
     def __exit__(self, exc_type, exc_value, tb):
         self.connection.close()
 
+
 class StorageEngine:
     def __init__(self, engine):
         self.engine = engine
@@ -46,13 +47,15 @@ class StorageEngine:
 
             # Create tweeter user
             check = conn.execute(
-                sqlalchemy.select([models.TwitterUserRegistration.c.id])
-                .where(models.TwitterUserRegistration.c.twitter_token == access_token)
+                sqlalchemy.select([models.TwitterUserRegistration.c.id]).where(
+                    models.TwitterUserRegistration.c.twitter_token == access_token
+                )
             ).fetchone()
 
             if check is None:
-                op = models.TwitterUserRegistration.insert().values(twitter_token=access_token,
-                                                                    twitter_token_secret=access_token_secret)
+                op = models.TwitterUserRegistration.insert().values(
+                    twitter_token=access_token, twitter_token_secret=access_token_secret
+                )
                 result = conn.execute(op)
                 twitter_user_id = result.inserted_primary_key[0]
             else:
@@ -60,8 +63,9 @@ class StorageEngine:
 
             # Create programaker user
             check = conn.execute(
-                sqlalchemy.select([models.PlazaUsers.c.id])
-                .where(models.PlazaUsers.c.id == connection_id)
+                sqlalchemy.select([models.PlazaUsers.c.id]).where(
+                    models.PlazaUsers.c.id == connection_id
+                )
             ).fetchone()
 
             if check is None:
@@ -70,16 +74,18 @@ class StorageEngine:
 
             # Bind the two users
             check = conn.execute(
-                sqlalchemy.select([models.PlazaUsersInTwitter.c.twitter_id])
-                .where(models.PlazaUsersInTwitter.c.twitter_id == twitter_user_id)
+                sqlalchemy.select([models.PlazaUsersInTwitter.c.twitter_id]).where(
+                    models.PlazaUsersInTwitter.c.twitter_id == twitter_user_id
+                )
             ).fetchone()
 
             if check is None:
                 if in_add_transaction is not None:
                     in_add_transaction(conn, twitter_user_id)
 
-                insert = models.PlazaUsersInTwitter.insert().values(plaza_id=connection_id,
-                                                                    twitter_id=twitter_user_id)
+                insert = models.PlazaUsersInTwitter.insert().values(
+                    plaza_id=connection_id, twitter_id=twitter_user_id
+                )
                 conn.execute(insert)
                 return True
             else:
@@ -87,33 +93,36 @@ class StorageEngine:
 
     def get_consumer_key(self, connection_id):
         with self._connect_db() as conn:
-            join = sqlalchemy.join(models.TwitterUserRegistration, models.PlazaUsersInTwitter,
-                                   models.TwitterUserRegistration.c.id
-                                   == models.PlazaUsersInTwitter.c.twitter_id)
+            join = sqlalchemy.join(
+                models.TwitterUserRegistration,
+                models.PlazaUsersInTwitter,
+                models.TwitterUserRegistration.c.id
+                == models.PlazaUsersInTwitter.c.twitter_id,
+            )
 
             results = conn.execute(
-                sqlalchemy.select([
-                    models.TwitterUserRegistration.c.twitter_token,
-                    models.TwitterUserRegistration.c.twitter_token_secret,
-                ])
+                sqlalchemy.select(
+                    [
+                        models.TwitterUserRegistration.c.twitter_token,
+                        models.TwitterUserRegistration.c.twitter_token_secret,
+                    ]
+                )
                 .select_from(join)
                 .where(models.PlazaUsersInTwitter.c.plaza_id == connection_id)
             ).fetchall()
 
-            return [
-                dict(zip(["token", "token_secret"], row))
-                for row in results
-            ]
-
+            return [dict(zip(["token", "token_secret"], row)) for row in results]
 
     def get_last_tweet_by_user(self, user_id, channel):
         with self._connect_db() as conn:
             result = conn.execute(
-                sqlalchemy.select([models.LastTweetByUser.c.tweet_id])
-                .where(sqlalchemy.and_(
-                    models.LastTweetByUser.c.listener_id == user_id,
-                    models.LastTweetByUser.c.listened_id == channel
-                ))).fetchone()
+                sqlalchemy.select([models.LastTweetByUser.c.tweet_id]).where(
+                    sqlalchemy.and_(
+                        models.LastTweetByUser.c.listener_id == user_id,
+                        models.LastTweetByUser.c.listened_id == channel,
+                    )
+                )
+            ).fetchone()
 
             if result is None:
                 return None
@@ -124,32 +133,39 @@ class StorageEngine:
         with self._connect_db() as conn:
             # TODO: Refactor with the one above
             result = conn.execute(
-                sqlalchemy.select([models.LastTweetByUser.c.tweet_id])
-                .where(sqlalchemy.and_(
-                    models.LastTweetByUser.c.listener_id == user_id,
-                    models.LastTweetByUser.c.listened_id == channel
-                ))).fetchone()
+                sqlalchemy.select([models.LastTweetByUser.c.tweet_id]).where(
+                    sqlalchemy.and_(
+                        models.LastTweetByUser.c.listener_id == user_id,
+                        models.LastTweetByUser.c.listened_id == channel,
+                    )
+                )
+            ).fetchone()
 
             if result is None:
-                op = models.LastTweetByUser.insert().values(listener_id=user_id,
-                                                            listened_id=channel,
-                                                            tweet_id=tweet_id)
+                op = models.LastTweetByUser.insert().values(
+                    listener_id=user_id, listened_id=channel, tweet_id=tweet_id
+                )
             else:
-                op = (models.LastTweetByUser
-                      .update()
-                      .where(sqlalchemy.and_(
-                          models.LastTweetByUser.c.listener_id == user_id,
-                          models.LastTweetByUser.c.listened_id == channel
-                      ))
-                      .values(tweet_id=tweet_id))
+                op = (
+                    models.LastTweetByUser.update()
+                    .where(
+                        sqlalchemy.and_(
+                            models.LastTweetByUser.c.listener_id == user_id,
+                            models.LastTweetByUser.c.listened_id == channel,
+                        )
+                    )
+                    .values(tweet_id=tweet_id)
+                )
 
             conn.execute(op)
 
     def get_last_timeline_tweet_by_user(self, user_id):
         with self._connect_db() as conn:
             result = conn.execute(
-                sqlalchemy.select([models.LastTweetInUserTimeline.c.tweet_id])
-                .where(models.LastTweetByUser.c.listener_id == user_id)).fetchone()
+                sqlalchemy.select([models.LastTweetInUserTimeline.c.tweet_id]).where(
+                    models.LastTweetByUser.c.listener_id == user_id
+                )
+            ).fetchone()
 
             if result is None:
                 return None
@@ -160,25 +176,30 @@ class StorageEngine:
         with self._connect_db() as conn:
             # TODO: Refactor with the one above
             result = conn.execute(
-                sqlalchemy.select([models.LastTweetInUserTimeline.c.tweet_id])
-                .where(models.LastTweetInUserTimeline.c.listener_id == user_id)).fetchone()
+                sqlalchemy.select([models.LastTweetInUserTimeline.c.tweet_id]).where(
+                    models.LastTweetInUserTimeline.c.listener_id == user_id
+                )
+            ).fetchone()
 
             if result is None:
-                op = models.LastTweetInUserTimeline.insert().values(listener_id=user_id,
-                                                                    tweet_id=tweet_id)
+                op = models.LastTweetInUserTimeline.insert().values(
+                    listener_id=user_id, tweet_id=tweet_id
+                )
             else:
-                op = (models.LastTweetInUserTimeline
-                      .update()
-                      .where(models.LastTweetInUserTimeline.c.listener_id == user_id)
-                      .values(tweet_id=tweet_id))
+                op = (
+                    models.LastTweetInUserTimeline.update()
+                    .where(models.LastTweetInUserTimeline.c.listener_id == user_id)
+                    .values(tweet_id=tweet_id)
+                )
 
             conn.execute(op)
 
     def get_twitter_user_id(self, user_id):
         with self._connect_db() as conn:
             result = conn.execute(
-                sqlalchemy.select([models.PlazaUsersInTwitter.c.twitter_id])
-                .where(models.PlazaUsersInTwitter.c.plaza_id == user_id)
+                sqlalchemy.select([models.PlazaUsersInTwitter.c.twitter_id]).where(
+                    models.PlazaUsersInTwitter.c.plaza_id == user_id
+                )
             ).fetchone()
 
             return result.twitter_id
@@ -186,19 +207,23 @@ class StorageEngine:
     def get_followers(self, twitter_id):
         with self._connect_db() as conn:
             results = conn.execute(
-                sqlalchemy.select([models.TwitterFollows.c.follower_id])
-                .where(models.TwitterFollows.c.followed_id == twitter_id)).fetchall()
+                sqlalchemy.select([models.TwitterFollows.c.follower_id]).where(
+                    models.TwitterFollows.c.followed_id == twitter_id
+                )
+            ).fetchall()
 
             return map(lambda x: x.follower_id, results)
 
     def is_follower(self, twitter_id, follower_id):
         with self._connect_db() as conn:
             result = conn.execute(
-                sqlalchemy.select([models.TwitterFollows.c.follower_id])
-                .where(
-                    sqlalchemy.and_(models.TwitterFollows.c.followed_id == twitter_id,
-                                    models.TwitterFollows.c.follower_id == follower_id,
-                    ))).fetchone()
+                sqlalchemy.select([models.TwitterFollows.c.follower_id]).where(
+                    sqlalchemy.and_(
+                        models.TwitterFollows.c.followed_id == twitter_id,
+                        models.TwitterFollows.c.follower_id == follower_id,
+                    )
+                )
+            ).fetchone()
 
             return result is not None
 
@@ -206,10 +231,7 @@ class StorageEngine:
         conn.execute(
             models.TwitterFollows.insert(),
             [
-                dict(
-                    followed_id=twitter_id,
-                    follower_id=follower,
-                )
+                dict(followed_id=twitter_id, follower_id=follower,)
                 for follower in followers
             ],
         )
@@ -226,23 +248,27 @@ class StorageEngine:
 
     def add_follower(self, twitter_id, follower_id):
         with self._connect_db() as conn:
-            op = models.TwitterFollows.insert().values(followed_id=twitter_id,
-                                                       follower_id=follower_id)
+            op = models.TwitterFollows.insert().values(
+                followed_id=twitter_id, follower_id=follower_id
+            )
 
             conn.execute(op)
 
     def remove_follower(self, twitter_id, follower_id):
         with self._connect_db() as conn:
             op = models.TwitterFollows.delete().where(
-                sqlalchemy.and_(models.TwitterFollows.c.followed_id == twitter_id,
-                                models.TwitterFollows.c.follower_id == follower_id))
+                sqlalchemy.and_(
+                    models.TwitterFollows.c.followed_id == twitter_id,
+                    models.TwitterFollows.c.follower_id == follower_id,
+                )
+            )
 
             conn.execute(op)
 
 
 def get_engine():
     # Create path to SQLite file, if its needed.
-    if CONNECTION_STRING.startswith('sqlite'):
+    if CONNECTION_STRING.startswith("sqlite"):
         db_file = re.sub("sqlite.*:///", "", CONNECTION_STRING)
         os.makedirs(os.path.dirname(db_file), exist_ok=True)
 
