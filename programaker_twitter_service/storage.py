@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -269,10 +270,10 @@ class StorageEngine:
 def get_engine():
     # Create path to SQLite file, if its needed.
     if CONNECTION_STRING.startswith("sqlite"):
-        db_file = re.sub("sqlite.*:///", "", CONNECTION_STRING)
+        db_file = re.sub("sqlite.*:///", "", CONNECTION_STRING, echo=False)
         os.makedirs(os.path.dirname(db_file), exist_ok=True)
 
-    engine = sqlalchemy.create_engine(CONNECTION_STRING, echo=True)
+    engine = sqlalchemy.create_engine(CONNECTION_STRING)
     metadata = models.metadata
     metadata.create_all(engine)
 
