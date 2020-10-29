@@ -1,17 +1,18 @@
 import getpass
 import json
 import os
+
 from xdg import XDG_CONFIG_HOME
 
-BRIDGE_ENDPOINT_ENV = 'PLAZA_BRIDGE_ENDPOINT'
-TWITTER_CONSUMER_API_TOKEN_ENV = 'TWITTER_CONSUMER_API_TOKEN'
-TWITTER_CONSUMER_API_TOKEN_SECRET_ENV = 'TWITTER_CONSUMER_API_TOKEN_SECRET'
-AUTH_TOKEN_ENV = 'PLAZA_BRIDGE_AUTH_TOKEN'
+BRIDGE_ENDPOINT_ENV = "PLAZA_BRIDGE_ENDPOINT"
+TWITTER_CONSUMER_API_TOKEN_ENV = "TWITTER_CONSUMER_API_TOKEN"
+TWITTER_CONSUMER_API_TOKEN_SECRET_ENV = "TWITTER_CONSUMER_API_TOKEN_SECRET"
+AUTH_TOKEN_ENV = "PLAZA_BRIDGE_AUTH_TOKEN"
 
 BRIDGE_ENDPOINT_INDEX = "plaza_bridge_endpoint"
-TWITTER_CONSUMER_API_TOKEN_INDEX = 'twitter_consumer_api_token'
-TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX = 'twitter_consumer_api_token_secret'
-AUTH_TOKEN_INDEX = 'plaza_authentication_token'
+TWITTER_CONSUMER_API_TOKEN_INDEX = "twitter_consumer_api_token"
+TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX = "twitter_consumer_api_token_secret"
+AUTH_TOKEN_INDEX = "plaza_authentication_token"
 
 global directory, config_file
 directory = os.path.join(XDG_CONFIG_HOME, "plaza", "bridges", "twitter")
@@ -46,6 +47,7 @@ def get_bridge_endpoint():
         _save_config(config)
     return config[BRIDGE_ENDPOINT_INDEX]
 
+
 def get_twitter_token():
     # Check if the consumer api token is defined in an environment variable
     consumer_api_token_env = os.getenv(TWITTER_CONSUMER_API_TOKEN_ENV, None)
@@ -55,11 +57,12 @@ def get_twitter_token():
     # If not, request it and save it to a file
     config = _get_config()
     if config.get(TWITTER_CONSUMER_API_TOKEN_INDEX, None) is None:
-        config[TWITTER_CONSUMER_API_TOKEN_INDEX] = input('Consumer API token: ').strip()
+        config[TWITTER_CONSUMER_API_TOKEN_INDEX] = input("Consumer API token: ").strip()
         if not config[TWITTER_CONSUMER_API_TOKEN_INDEX]:
-            raise Exception('No consumer API token introduced')
+            raise Exception("No consumer API token introduced")
         _save_config(config)
     return config[TWITTER_CONSUMER_API_TOKEN_INDEX]
+
 
 def get_twitter_token_secret():
     # Check if the consumer api token is defined in an environment variable
@@ -70,9 +73,11 @@ def get_twitter_token_secret():
     # If not, request it and save it to a file
     config = _get_config()
     if config.get(TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX, None) is None:
-        config[TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX] = input('Consumer API token *secret*: ').strip()
+        config[TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX] = input(
+            "Consumer API token *secret*: "
+        ).strip()
         if not config[TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX]:
-            raise Exception('No consumer API token *secret* introduced')
+            raise Exception("No consumer API token *secret* introduced")
         _save_config(config)
     return config[TWITTER_CONSUMER_API_TOKEN_SECRET_INDEX]
 
@@ -84,8 +89,8 @@ def get_auth_token():
 
     config = _get_config()
     if config.get(AUTH_TOKEN_INDEX, None) is None:
-        config[AUTH_TOKEN_INDEX] = input('Programaker authentication TOKEN: ')
+        config[AUTH_TOKEN_INDEX] = input("Programaker authentication TOKEN: ")
         if not config[AUTH_TOKEN_INDEX]:
-            raise Exception('No authentication token introduced')
+            raise Exception("No authentication token introduced")
         _save_config(config)
     return config[AUTH_TOKEN_INDEX]
