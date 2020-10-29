@@ -81,7 +81,13 @@ class TweetListenerThread(threading.Thread):
                     try:
                         self.check(user_id, channel)
                     except Exception:
-                        logging.error(traceback.format_exc())
+                        logging.error(
+                            "Checking for updates on channel {channel} (for user: {user}) \n{error}".format(
+                                channel=channel,
+                                user=user_id,
+                                error=traceback.format_exc(),
+                            )
+                        )
 
     def check(self, user_id, channel):
         logging.debug("Checking update for {} on {}".format(user_id, channel))
