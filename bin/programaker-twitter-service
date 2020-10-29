@@ -154,7 +154,7 @@ def on_new_timeline_listeners(user, _subkey):
 
 
 def send_message_to_platform(user_id, message):
-    logging.info("sending message: {}".format(get_tweet_message(message._json)))
+    logging.info("New message: {}".format(get_tweet_message(message._json)))
     on_new_tweet_event.send(to_user=user_id,
                             content=message._json,
                             event=message._json,
@@ -162,7 +162,8 @@ def send_message_to_platform(user_id, message):
 
 
 def send_timeline_update_to_platform(user_id, message):
-    logging.info("sending timeline update: {}".format(get_tweet_message(message._json)))
+    logging.info("New timeline update: {}".format(
+        get_tweet_message(message._json)))
     on_new_tweet_on_home_timeline_event.send(
         to_user=user_id,
         content=message._json,
@@ -171,10 +172,11 @@ def send_timeline_update_to_platform(user_id, message):
 
 
 def send_follow_to_platform(user_id, follower_id):
+    logging.info("Followed {} by {}".format(user_id, follower_id))
     RATE_LIMIT_MANAGER.notify_will_use(user_id, rate_limit.USER_INFO)
     user = AUTH.get_api(user_id).get_user(follower_id)
 
-    logging.info("FOLLOWED: {}".format(user.screen_name))
+    logging.info("FOLLOWED by: {}".format(user.screen_name))
     on_followed_event.send(
         to_user=user_id,
         content=user.screen_name,
@@ -183,6 +185,7 @@ def send_follow_to_platform(user_id, follower_id):
 
 
 def send_unfollow_to_platform(user_id, follower_id):
+    logging.info("Unfollowed {} by {}".format(user_id, follower_id))
     RATE_LIMIT_MANAGER.notify_will_use(user_id, rate_limit.USER_INFO)
     user = AUTH.get_api(user_id).get_user(follower_id)
 
