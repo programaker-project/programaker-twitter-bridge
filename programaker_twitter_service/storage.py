@@ -270,7 +270,7 @@ class StorageEngine:
 def get_engine():
     # Create path to SQLite file, if its needed.
     if CONNECTION_STRING.startswith("sqlite"):
-        db_file = re.sub("sqlite.*:///", "", CONNECTION_STRING, echo=False)
+        db_file = re.sub("sqlite.*:///", "", CONNECTION_STRING)
         os.makedirs(os.path.dirname(db_file), exist_ok=True)
 
     engine = sqlalchemy.create_engine(CONNECTION_STRING)
