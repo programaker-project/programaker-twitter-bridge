@@ -112,8 +112,7 @@ on_new_tweet_event = bridge.events.on_new_tweet
 on_new_tweet_event.add_trigger_block(
     id="on_new_tweet_by_account",
     message="When %1 tweets. Save to %2",
-    arguments=[BlockArgument(str, "obichero"),
-               VariableBlockArgument(str)],
+    arguments=[BlockArgument(str, "obichero"), VariableBlockArgument("struct")],
     subkey=BlockContext.ARGUMENTS[0],
     save_to=BlockContext.ARGUMENTS[1],
 )
@@ -122,7 +121,7 @@ on_new_tweet_on_home_timeline_event = bridge.events.on_new_tweet_on_home_timelin
 on_new_tweet_on_home_timeline_event.add_trigger_block(
     id="on_new_tweet_on_home_timeline",
     message="When new tweet on timeline. Save to %1",
-    arguments=[VariableBlockArgument(str)],
+    arguments=[VariableBlockArgument("struct")],
     save_to=BlockContext.ARGUMENTS[0],
 )
 
@@ -209,6 +208,7 @@ LISTENER.on_new_unfollow = send_unfollow_to_platform
     arguments=[
         BlockArgument(str, "obichero"),
     ],
+    block_result_type="struct",
 )
 def get_last_tweet(account_name, extra_data):
     RATE_LIMIT_MANAGER.notify_will_use(extra_data.user_id,
@@ -225,8 +225,10 @@ def get_last_tweet(account_name, extra_data):
     id="get_tweet_message",  # Give it an ID
     message="Get message from tweet in %1",  # Set block message
     arguments=[
-        BlockArgument(str, '<< Add here a "get-tweet" block >>'),
-    ])
+        BlockArgument("struct", '<< Add here a "get-tweet" block >>'),
+    ],
+    block_result_type=str,
+)
 def get_tweet_message(tweet_data, extra_data=None):
     return tweet_data['text']
 
@@ -235,7 +237,7 @@ def get_tweet_message(tweet_data, extra_data=None):
     id="get_hashtags",  # Give it an ID
     message="Save hashtags from tweet in %1 to %2",  # Set block message
     arguments=[
-        BlockArgument(str, '<< Add here a "get-tweet" block >>'),
+        BlockArgument("struct", '<< Add here a "get-tweet" block >>'),
         VariableBlockArgument(list),
     ],
     save_to=BlockContext.ARGUMENTS[1],
@@ -248,7 +250,9 @@ def get_tweet_hashtags(tweet_data, extra_data=None):
 @bridge.getter(
     id="get_tweet_author",  # Give it an ID
     message="Author of tweet %1",  # Set block message
-    arguments=[BlockArgument(str, '<< Add here a "tweet" block >>')])
+    arguments=[BlockArgument("struct", '<< Add here a "tweet" block >>')],
+    block_result_type=str,
+)
 def get_tweet_author(tweet_data, extra_data=None):
     name = tweet_data.get('user', {}).get('screen_name', None)
     return name
@@ -291,8 +295,10 @@ def unfollow_user(screen_name, extra_data=None):
     id="is_user_follower",  # Give it an ID
     message="Is %1 a follower?",  # Set block message
     arguments=[
-        BlockArgument(str, 'obichero'),
-    ])
+        BlockArgument(str, "obichero"),
+    ],
+    block_result_type=bool,
+)
 def is_user_follower(screen_name, extra_data=None):
     twitter_id = STORAGE.get_twitter_user_id(extra_data.user_id)
 
