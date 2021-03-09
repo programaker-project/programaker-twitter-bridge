@@ -310,9 +310,8 @@ def is_user_follower(screen_name, extra_data=None):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        format="%(asctime)s - %(levelname)s [%(filename)s] %(message)s")
-    logging.getLogger().setLevel(logging.INFO)
+    logging.basicConfig(format="%(asctime)s - %(levelname)s [%(filename)s] %(message)s")
+    logging.getLogger().setLevel(logging.DEBUG)
 
     LISTENER.start()
     try:
