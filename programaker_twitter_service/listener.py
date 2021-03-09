@@ -25,8 +25,8 @@ class TweetListenerThread(threading.Thread):
     def add_to_user(self, user, subkey):
         logging.debug("New listener: {} {}".format(user, subkey))
         if user not in self.by_user:
-            self.by_user[user] = []
-        self.by_user[user].append(subkey)
+            self.by_user[user] = set()
+        self.by_user[user].add(subkey)
 
     def add_home_timeline(self, user):
         logging.debug("New home timeline: {}".format(user))
