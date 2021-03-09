@@ -113,10 +113,11 @@ class RateLimitManager:
         per_element_update_period = single_check_update_period * queries_in_bucket
 
         logging.info(
-            "UPDATE_PERIOD (endpoint={}, limit={}, window={}): {}".format(
+            "UPDATE_PERIOD (endpoint={}, limit={}, window={}, bucket={}): {}".format(
                 endpoint,
                 endpoint_info["per_user_limit"],
                 endpoint_info["limit_window"],
+                queries_in_bucket,
                 per_element_update_period,
             )
         )
@@ -148,6 +149,9 @@ class RateLimitManager:
                         per_element_update_period,
                     )
                 )
+
+        if time_to_update:
+            logging.info("UPDATING")
 
         if time_to_update:
             self.usage_info[connection_id][endpoint]["check"][
