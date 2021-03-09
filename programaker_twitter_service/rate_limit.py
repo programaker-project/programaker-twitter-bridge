@@ -112,6 +112,15 @@ class RateLimitManager:
         ) / RATE_LIMIT_MARGIN
         per_element_update_period = single_check_update_period * queries_in_bucket
 
+        logging.info(
+            "UPDATE_PERIOD (endpoint={}, limit={}, window={}): {}".format(
+                endpoint,
+                endpoint_info["per_user_limit"],
+                endpoint_info["limit_window"],
+                per_element_update_period,
+            )
+        )
+
         if connection_id not in self.usage_info:
             self.usage_info[connection_id] = {}
 
@@ -130,6 +139,15 @@ class RateLimitManager:
             time_to_update = (time_since_update > MIN_UPDATE_PERIOD) and (
                 time_since_update > per_element_update_period
             )
+            if not time_to_update:
+                logging.info(
+                    "NOT UPDATING ({} < {}) or ({} < {})".format(
+                        time_since_update,
+                        MIN_UPDATE_PERIOD,
+                        time_since_update,
+                        per_element_update_period,
+                    )
+                )
 
         if time_to_update:
             self.usage_info[connection_id][endpoint]["check"][
