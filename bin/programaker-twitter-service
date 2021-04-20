@@ -233,14 +233,13 @@ def get_tweet_message(tweet_data, extra_data=None):
     return tweet_data['text']
 
 
-@bridge.operation(
+@bridge.getter(
     id="get_hashtags",  # Give it an ID
-    message="Save hashtags from tweet in %1 to %2",  # Set block message
+    message="Get hashtags from tweet in %1",  # Set block message
     arguments=[
         BlockArgument("struct", '<< Add here a "get-tweet" block >>'),
-        VariableBlockArgument(list),
     ],
-    save_to=BlockContext.ARGUMENTS[1],
+    block_result_type=list,
 )
 def get_tweet_hashtags(tweet_data, extra_data=None):
     hashtags = tweet_data.get('entities', {}).get('hashtags', [])
