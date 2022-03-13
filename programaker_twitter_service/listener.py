@@ -119,7 +119,7 @@ class TweetListener:
 
     def check(self, user_id, channel):
         tweets = self.api_dispatcher.get_api(user_id).user_timeline(
-            channel, count=NUM_TWEETS_PER_CHECK
+            screen_name=channel, count=NUM_TWEETS_PER_CHECK
         )
         last_tweet_by_user = self.storage.get_last_tweet_by_user(user_id, channel) or 0
         for tweet in tweets[::-1]:
