@@ -258,6 +258,19 @@ def get_tweet_hashtags(tweet_data, extra_data=None):
     hashtags = tweet_data.get('entities', {}).get('hashtags', [])
     return [tag['text'] for tag in hashtags]
 
+
+@bridge.getter(
+    id="get_image_urls",  # Give it an ID
+    message="Get Urls from images in tweet: %1",  # Set block message
+    arguments=[
+        BlockArgument("struct", '<< Add here a "get-tweet" block >>'),
+    ],
+    block_result_type=list,
+)
+def get_tweet_hashtags(tweet_data, extra_data=None):
+    hashtags = tweet_data.get("entities", {}).get("media", [])
+    return [tag["media_url_https"] for tag in hashtags]
+
 @bridge.getter(
     id="is_retweet",  # Give it an ID
     message="Is %1 a retweet",  # Set block message
