@@ -232,6 +232,19 @@ def get_last_tweet(account_name, extra_data):
 def get_tweet_message(tweet_data, extra_data=None):
     return tweet_data['text']
 
+@bridge.getter(
+    id="get_original_tweet_message",  # Give it an ID
+    message="Get message from tweet in %1. Get original message if reweet.",  # Set block message
+    arguments=[
+        BlockArgument("struct", '<< Add here a "get-tweet" block >>'),
+    ],
+    block_result_type=str,
+)
+def get_original_tweet_message(tweet_data, extra_data=None):
+    if "retweeted_status" in tweet_data:
+        return tweet_data["retweeted_status"]["text"]
+    return tweet_data["text"]
+
 
 @bridge.getter(
     id="get_hashtags",  # Give it an ID
@@ -244,6 +257,17 @@ def get_tweet_message(tweet_data, extra_data=None):
 def get_tweet_hashtags(tweet_data, extra_data=None):
     hashtags = tweet_data.get('entities', {}).get('hashtags', [])
     return [tag['text'] for tag in hashtags]
+
+@bridge.getter(
+    id="is_retweet",  # Give it an ID
+    message="Is %1 a retweet",  # Set block message
+    arguments=[
+        BlockArgument("struct", '<< Add here a "get-tweet" block >>'),
+    ],
+    block_result_type=bool,
+)
+def is_retweet(tweet_data, extra_data=None):
+    return "retweeted_status" in tweet_data
 
 
 @bridge.getter(
